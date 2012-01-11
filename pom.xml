@@ -90,7 +90,7 @@
         <version.gnu.getopt>1.0.13</version.gnu.getopt>
         <version.jacorb>2.3.1.jbossorg-1</version.jacorb>
         <version.javax.activation>1.1.1</version.javax.activation>
-        <version.javax.enterprise>1.0-SP4</version.javax.enterprise>
+        <version.javax.enterprise>1.1.EDR1.2</version.javax.enterprise>
         <version.javax.faces.jsf-api.1.2>1.2_15-jbossorg-2</version.javax.faces.jsf-api.1.2>
         <version.javax.faces.jsf-impl>2.1.5-jbossorg-1</version.javax.faces.jsf-impl>
         <version.javax.faces.jsf-impl.1.2>1.2_15-jbossorg-2</version.javax.faces.jsf-impl.1.2>
@@ -223,7 +223,7 @@
         <version.org.jboss.threads>2.0.0.GA</version.org.jboss.threads>
         <version.org.jboss.web>7.0.7.Final</version.org.jboss.web>
         <version.org.jboss.web.jasper-jdt>7.0.3.Final</version.org.jboss.web.jasper-jdt>
-        <version.org.jboss.weld.weld>1.1.4.Final</version.org.jboss.weld.weld>
+        <version.org.jboss.weld.weld>2.0.0-SNAPSHOT</version.org.jboss.weld.weld>
         <version.org.jboss.weld.weld-api>1.1.Final</version.org.jboss.weld.weld-api>
         <version.org.jboss.ws.api>1.0.0.GA</version.org.jboss.ws.api>
         <version.org.jboss.ws.common>2.0.0.GA</version.org.jboss.ws.common>

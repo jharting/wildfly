@@ -28,6 +28,10 @@
         <module name="javax.inject.api" export="true"/>
         <module name="javax.interceptor.api" export="true"/>
     </dependencies>
+    
+    <!-- CDIProvider -->
+    <module name="org.jboss.as.weld" services="import"/>
+    <module name="org.jboss.weld.core"/>
 
     <resources>
         <!-- Insert resources here -->
