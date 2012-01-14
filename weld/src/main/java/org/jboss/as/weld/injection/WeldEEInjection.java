@@ -41,6 +41,8 @@ import javax.inject.Inject;
 
 import org.jboss.as.server.deployment.DeploymentUnitProcessingException;
 import org.jboss.weld.bean.AbstractClassBean;
+import org.jboss.weld.exceptions.DefinitionException;
+import org.jboss.weld.logging.messages.ValidatorMessage;
 import org.jboss.weld.manager.BeanManagerImpl;
 import org.jboss.weld.resources.ClassTransformer;
 
@@ -145,7 +147,7 @@ class WeldEEInjection {
                 if (field.isAnnotationPresent(Inject.class)) {
 
                     if (InjectionPoint.class.isAssignableFrom(field.getJavaMember().getType())) {
-                        throw new RuntimeException("Component " + componentClass + " is attempting to inject the InjectionPoint into a field: " + field.getJavaMember());
+                        throw new DefinitionException(ValidatorMessage.INJECTION_INTO_NON_BEAN, field);
                     }
 
                     final Set<Annotation> qualifiers = new HashSet<Annotation>();
