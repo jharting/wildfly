@@ -29,12 +29,12 @@
     <parent>
         <groupId>org.jboss.as</groupId>
         <artifactId>jboss-as-parent</artifactId>
-        <version>7.1.0.CR1b</version>
+        <version>7.1.0.Final</version>
     </parent>
 
     <groupId>org.jboss.as</groupId>
     <artifactId>jboss-as-weld2</artifactId>
-    <version>7.1.0.CR1b</version>
+    <version>7.1.0.Final</version>
 
     <name>JBoss Application Server: Weld 2 Integration</name>
 
