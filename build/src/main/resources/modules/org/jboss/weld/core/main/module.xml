@@ -46,7 +46,12 @@
         <module name="javax.servlet.api"/>
         <module name="javax.transaction.api"/>
         <module name="javax.validation.api"/>
+        <!-- 
+            Kept for backwards compatibility with previous versions of Weld.
+            Can be removed for 2.0.0.Alpha2 and later
+         -->
         <module name="org.javassist"/>
+        <module name="org.jboss.classfilewriter"/>
         <module name="org.jboss.weld.api" />
         <module name="org.jboss.weld.spi" />
         <module name="org.slf4j" />
