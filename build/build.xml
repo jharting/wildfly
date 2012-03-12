@@ -295,7 +295,7 @@
 
     </target>
 
-    <target name="modules" depends="modules-minimalistic">
+    <target name="modules" depends="modules-minimalistic,modules-weld-integration">
         <!--
           ~ Complete list of modules to assemble.
           ~
@@ -892,9 +892,6 @@
             <!-- this is a dependencies only module for JAXRPC functionalities provided by JBossWS Native stack -->
         </module-def>
 
-        <module-def name="org.jboss.as.weld">
-            <maven-resource group="org.jboss.as" artifact="jboss-as-weld"/>
-        </module-def>
         <module-def name="org.jboss.as.xts">
             <maven-resource group="org.jboss.as" artifact="jboss-as-xts"/>
         </module-def>
@@ -1197,6 +1194,20 @@
 
         <module-def name="sun.jdk"/>
 
+    </target>
+    
+    <target name="modules-weld-integration" depends="weld1-integration,weld2-integration"/>
+
+    <target name="weld1-integration" unless="org.jboss.weld2">
+        <module-def name="org.jboss.as.weld">
+            <maven-resource group="org.jboss.as" artifact="jboss-as-weld"/>
+        </module-def>
+    </target>
+
+    <target name="weld2-integration" if="org.jboss.weld2">
+        <module-def name="org.jboss.as.weld">
+            <maven-resource group="org.jboss.as" artifact="jboss-as-weld2"/>
+        </module-def>
     </target>
 
     <target name="bundles">

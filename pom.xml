@@ -267,6 +267,9 @@
 
         <!-- Checkstyle configuration -->
         <linkXRef>false</linkXRef>
+
+        <!-- Name of the weld intergation module to build -->
+        <module.weld>weld</module.weld>
     </properties>
 
     <modules>
@@ -1128,6 +1131,18 @@
             <dependency>
                 <groupId>org.jboss.as</groupId>
                 <artifactId>jboss-as-weld</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.jboss.as</groupId>
+                <artifactId>jboss-as-weld2</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.jboss.as</groupId>
+                <artifactId>jboss-as-weld2</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
@@ -5921,11 +5936,25 @@
                 <module>transactions</module>
                 <module>web</module>
                 <module>webservices</module>
-                <module>weld</module>
+                <module>${module.weld}</module>
                 <module>xts</module>
                 <module>testsuite/shared</module>
                 <module>testsuite</module>
             </modules>
+        </profile>
+        <profile>
+            <id>weld2</id>
+            <activation>
+                <property>
+                    <name>org.jboss.weld2</name>
+                </property>
+            </activation>
+            <properties>
+                <module.weld>weld2</module.weld>
+                <version.org.jboss.weld.weld>2.0.0-SNAPSHOT</version.org.jboss.weld.weld>
+                <version.org.jboss.weld.weld-api>2.0-SNAPSHOT</version.org.jboss.weld.weld-api>
+                <version.javax.enterprise>1.1.EDR1.2</version.javax.enterprise>
+            </properties>
         </profile>
     </profiles>
 </project>

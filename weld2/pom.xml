@@ -33,10 +33,10 @@
     </parent>
 
     <groupId>org.jboss.as</groupId>
-    <artifactId>jboss-as-weld</artifactId>
+    <artifactId>jboss-as-weld2</artifactId>
     <version>7.1.2.Final</version>
 
-    <name>JBoss Application Server: Weld Integration</name>
+    <name>JBoss Application Server: Weld 2 Integration</name>
 
     <build>
         <plugins>
