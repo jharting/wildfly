@@ -23,8 +23,6 @@ package org.jboss.as.weld.services;
 
 import java.security.AccessController;
 import java.security.PrivilegedAction;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -67,7 +65,7 @@ public class ModuleGroupSingletonProvider extends SingletonProvider {
 
     private static class TCCLSingleton<T> implements Singleton<T> {
 
-        private final Map<ClassLoader, T> store = Collections.synchronizedMap(new HashMap<ClassLoader, T>());
+        private final Map<ClassLoader, T> store = new ConcurrentHashMap<ClassLoader, T>();
 
         public T get() {
             T instance = store.get(findParentModuleCl(getClassLoader()));
