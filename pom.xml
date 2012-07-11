@@ -5951,7 +5951,7 @@
             </activation>
             <properties>
                 <module.weld>weld2</module.weld>
-                <version.org.jboss.weld.weld>2.0.0.Alpha2</version.org.jboss.weld.weld>
+                <version.org.jboss.weld.weld>2.0.0.Alpha3</version.org.jboss.weld.weld>
                 <version.org.jboss.weld.weld-api>2.0.Alpha2</version.org.jboss.weld.weld-api>
                 <version.javax.enterprise>1.1.EDR1.2</version.javax.enterprise>
             </properties>
