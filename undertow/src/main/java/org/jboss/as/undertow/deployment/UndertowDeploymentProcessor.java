@@ -546,14 +546,16 @@ public class UndertowDeploymentProcessor implements DeploymentUnitProcessor {
                 }
             }
 
+            Set<Class<?>> registeredListeners = new HashSet<Class<?>>();
             if (mergedMetaData.getListeners() != null) {
                 for (ListenerMetaData listener : mergedMetaData.getListeners()) {
                     final Class<? extends EventListener> listenerClass = (Class<? extends EventListener>) classReflectionIndex.classIndex(listener.getListenerClass()).getModuleClass();
                     addListener(classReflectionIndex, componentRegistry, d, listenerClass);
+                    registeredListeners.add(listenerClass);
                 }
             }
             for (Map.Entry<Class<?>, ComponentRegistry.ComponentManagedReferenceFactory> entry : componentRegistry.getComponentsByClass().entrySet()) {
-                if (AsyncListener.class.isAssignableFrom(entry.getKey())) {
+                if (AsyncListener.class.isAssignableFrom(entry.getKey()) && registeredListeners.contains(entry.getKey())) {
                     addListener(classReflectionIndex, componentRegistry, d, (Class<? extends EventListener>) entry.getKey());
                 }
             }
