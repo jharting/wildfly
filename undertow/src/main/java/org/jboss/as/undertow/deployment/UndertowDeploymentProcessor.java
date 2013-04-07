@@ -22,23 +22,9 @@
 
 package org.jboss.as.undertow.deployment;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.EventListener;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import javax.servlet.Filter;
-import javax.servlet.Servlet;
-import javax.servlet.ServletContainerInitializer;
-import javax.servlet.http.HttpServletRequest;
-
+import static javax.servlet.annotation.ServletSecurity.EmptyRoleSemantic.DENY;
+import static javax.servlet.annotation.ServletSecurity.EmptyRoleSemantic.PERMIT;
+import static org.jboss.as.undertow.UndertowMessages.MESSAGES;
 import io.undertow.jsp.JspFileWrapper;
 import io.undertow.jsp.JspServletBuilder;
 import io.undertow.server.HttpServerExchange;
@@ -61,6 +47,25 @@ import io.undertow.servlet.api.ThreadSetupAction;
 import io.undertow.servlet.api.WebResourceCollection;
 import io.undertow.servlet.util.ConstructorInstanceFactory;
 import io.undertow.servlet.util.ImmediateInstanceFactory;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.EventListener;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import javax.servlet.AsyncListener;
+import javax.servlet.Filter;
+import javax.servlet.Servlet;
+import javax.servlet.ServletContainerInitializer;
+import javax.servlet.http.HttpServletRequest;
+
 import org.apache.jasper.deploy.FunctionInfo;
 import org.apache.jasper.deploy.JspPropertyGroup;
 import org.apache.jasper.deploy.TagAttributeInfo;
@@ -136,10 +141,6 @@ import org.jboss.msc.service.ServiceTarget;
 import org.jboss.security.SecurityConstants;
 import org.jboss.security.SecurityUtil;
 import org.jboss.vfs.VirtualFile;
-
-import static javax.servlet.annotation.ServletSecurity.EmptyRoleSemantic.DENY;
-import static javax.servlet.annotation.ServletSecurity.EmptyRoleSemantic.PERMIT;
-import static org.jboss.as.undertow.UndertowMessages.MESSAGES;
 
 public class UndertowDeploymentProcessor implements DeploymentUnitProcessor {
 
@@ -547,10 +548,16 @@ public class UndertowDeploymentProcessor implements DeploymentUnitProcessor {
 
             if (mergedMetaData.getListeners() != null) {
                 for (ListenerMetaData listener : mergedMetaData.getListeners()) {
-                    addListener(classReflectionIndex, componentRegistry, d, listener);
+                    final Class<? extends EventListener> listenerClass = (Class<? extends EventListener>) classReflectionIndex.classIndex(listener.getListenerClass()).getModuleClass();
+                    addListener(classReflectionIndex, componentRegistry, d, listenerClass);
                 }
-
             }
+            for (Map.Entry<Class<?>, ComponentRegistry.ComponentManagedReferenceFactory> entry : componentRegistry.getComponentsByClass().entrySet()) {
+                if (AsyncListener.class.isAssignableFrom(entry.getKey())) {
+                    addListener(classReflectionIndex, componentRegistry, d, (Class<? extends EventListener>) entry.getKey());
+                }
+            }
+
             if (mergedMetaData.getContextParams() != null) {
                 for (ParamValueMetaData param : mergedMetaData.getContextParams()) {
                     d.addInitParameter(param.getParamName(), param.getParamValue());
@@ -896,10 +903,8 @@ public class UndertowDeploymentProcessor implements DeploymentUnitProcessor {
         return tagLibraryInfo;
     }
 
-    private void addListener(final DeploymentClassIndex classReflectionIndex, final ComponentRegistry components, final DeploymentInfo d, final ListenerMetaData listener) throws ClassNotFoundException {
-
+    private void addListener(final DeploymentClassIndex classReflectionIndex, final ComponentRegistry components, final DeploymentInfo d, final Class<? extends EventListener> listenerClass) throws ClassNotFoundException {
         ListenerInfo l;
-        final Class<? extends EventListener> listenerClass = (Class<? extends EventListener>) classReflectionIndex.classIndex(listener.getListenerClass()).getModuleClass();
         ComponentRegistry.ComponentManagedReferenceFactory creator = components.getComponentsByClass().get(listenerClass);
         if (creator != null) {
             InstanceFactory<EventListener> factory = createInstanceFactory(creator);
