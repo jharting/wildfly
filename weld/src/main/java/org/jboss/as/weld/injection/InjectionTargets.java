@@ -36,6 +36,17 @@ public class InjectionTargets {
     private InjectionTargets() {
     }
 
+    /**
+     * Creates a new InjectionTarget for a given class. If the interceptionSupport flag is set to true the resulting instance will support
+     * interception (support provided by Weld). If an InjectionTarget is created for a component where interception support is implemented
+     * through component's view (EJBs, managed beans) the flag must be set to false.
+     *
+     * @param componentClass
+     * @param bean
+     * @param beanManager
+     * @param interceptionSupport
+     * @return
+     */
     public static <T> BasicInjectionTarget<T> createInjectionTarget(Class<?> componentClass, Bean<T> bean, BeanManagerImpl beanManager,
             boolean interceptionSupport) {
         final ClassTransformer transformer = beanManager.getServices().get(ClassTransformer.class);

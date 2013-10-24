@@ -24,7 +24,7 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.enterprise.context.spi.CreationalContext;
-import javax.enterprise.inject.spi.BeanManager;
+import javax.enterprise.inject.spi.Bean;
 import javax.enterprise.inject.spi.InterceptionType;
 import javax.enterprise.inject.spi.Interceptor;
 import javax.interceptor.InvocationContext;
@@ -40,12 +40,18 @@ import org.jboss.invocation.InterceptorContext;
 import org.jboss.invocation.InterceptorFactoryContext;
 import org.jboss.msc.value.ImmediateValue;
 import org.jboss.msc.value.InjectedValue;
-import org.jboss.weld.bean.SessionBean;
+import org.jboss.weld.annotated.enhanced.EnhancedAnnotatedType;
+import org.jboss.weld.annotated.slim.SlimAnnotatedType;
+import org.jboss.weld.bean.interceptor.InterceptorBindingsAdapter;
 import org.jboss.weld.ejb.spi.EjbDescriptor;
 import org.jboss.weld.ejb.spi.EjbServices;
 import org.jboss.weld.ejb.spi.InterceptorBindings;
 import org.jboss.weld.ejb.spi.helpers.ForwardingEjbServices;
+import org.jboss.weld.injection.producer.InterceptionModelInitializer;
+import org.jboss.weld.interceptor.spi.metadata.ClassMetadata;
+import org.jboss.weld.interceptor.spi.model.InterceptionModel;
 import org.jboss.weld.manager.BeanManagerImpl;
+import org.jboss.weld.resources.ClassTransformer;
 import org.jboss.weld.serialization.spi.ContextualStore;
 import org.jboss.weld.serialization.spi.helpers.SerializableContextualInstance;
 import org.wildfly.security.manager.WildFlySecurityManager;
@@ -58,34 +64,30 @@ import org.wildfly.security.manager.WildFlySecurityManager;
  *
  * @author Marius Bogoevici
  * @author Stuart Douglas
+ * @author Jozef Hartinger
  */
 public class Jsr299BindingsInterceptor implements org.jboss.invocation.Interceptor {
 
     private final Map<String, SerializableContextualInstance<Interceptor<Object>, Object>> interceptorInstances;
     private final CreationalContext<Object> creationalContext;
-    private final String ejbName;
-    private final BeanManager beanManager;
     private final InterceptionType interceptionType;
+    private final InterceptorBindings interceptorBindings;
 
 
-    protected Jsr299BindingsInterceptor(final BeanManagerImpl beanManager, final String ejbName, final InterceptorFactoryContext context, final InterceptionType interceptionType, final ClassLoader classLoader) {
+    protected Jsr299BindingsInterceptor(final BeanManagerImpl beanManager, final InterceptorBindings interceptorBindings, final Bean<?> bean, final InterceptorFactoryContext context, final InterceptionType interceptionType, final ClassLoader classLoader) {
         final ClassLoader tccl = WildFlySecurityManager.getCurrentContextClassLoaderPrivileged();
         try {
             //this is not always called with the deployments TCCL set
             //which causes weld to blow up
             WildFlySecurityManager.setCurrentContextClassLoaderPrivileged(classLoader);
-            this.beanManager = beanManager;
-            this.ejbName = ejbName;
             this.interceptionType = interceptionType;
-            EjbDescriptor<Object> descriptor = beanManager.getEjbDescriptor(this.ejbName);
-            SessionBean<Object> bean = beanManager.getBean(descriptor);
+            this.interceptorBindings = interceptorBindings;
 
             final AtomicReference<ManagedReference> reference = (AtomicReference<ManagedReference>) context.getContextData().get(SerializedCdiInterceptorsKey.class);
 
             if (reference == null) {
-                creationalContext = beanManager.createCreationalContext(bean);
+                creationalContext = (CreationalContext<Object>) beanManager.createCreationalContext(bean);
                 interceptorInstances = new HashMap<String, SerializableContextualInstance<Interceptor<Object>, Object>>();
-                InterceptorBindings interceptorBindings = getInterceptorBindings(this.ejbName);
                 if (interceptorBindings != null) {
                     for (Interceptor<?> interceptor : interceptorBindings.getAllInterceptors()) {
                         addInterceptorInstance((Interceptor<Object>) interceptor, beanManager, interceptorInstances);
@@ -122,7 +124,6 @@ public class Jsr299BindingsInterceptor implements org.jboss.invocation.Intercept
 
     private Object doMethodInterception(InvocationContext invocationContext, InterceptionType interceptionType)
             throws Exception {
-        InterceptorBindings interceptorBindings = getInterceptorBindings(ejbName);
         if (interceptorBindings != null) {
             List<Interceptor<?>> currentInterceptors = interceptorBindings.getMethodInterceptors(interceptionType, invocationContext.getMethod());
             return delegateInterception(invocationContext, interceptionType, currentInterceptors);
@@ -156,7 +157,6 @@ public class Jsr299BindingsInterceptor implements org.jboss.invocation.Intercept
 
     private Object doLifecycleInterception(final InterceptorContext context) throws Exception {
         try {
-            final InterceptorBindings interceptorBindings = getInterceptorBindings(ejbName);
             if (interceptorBindings != null) {
                 List<Interceptor<?>> currentInterceptors = interceptorBindings.getLifecycleInterceptors(interceptionType);
                 delegateInterception(context.getInvocationContext(), interceptionType, currentInterceptors);
@@ -164,19 +164,6 @@ public class Jsr299BindingsInterceptor implements org.jboss.invocation.Intercept
         } finally {
             return context.proceed();
         }
-    }
-
-    protected InterceptorBindings getInterceptorBindings(String ejbName) {
-        BeanManagerImpl beanManager = (BeanManagerImpl) this.beanManager;
-        EjbServices ejbServices = beanManager.getServices().get(EjbServices.class);
-        if (ejbServices instanceof ForwardingEjbServices) {
-            ejbServices = ((ForwardingEjbServices) ejbServices).delegate();
-        }
-        InterceptorBindings interceptorBindings = null;
-        if (ejbServices instanceof WeldEjbServices) {
-            interceptorBindings = ((WeldEjbServices) ejbServices).getBindings(ejbName);
-        }
-        return interceptorBindings;
     }
 
     private void addInterceptorInstance(Interceptor<Object> interceptor, BeanManagerImpl beanManager, Map<String, SerializableContextualInstance<Interceptor<Object>, Object>> instances) {
@@ -192,28 +179,50 @@ public class Jsr299BindingsInterceptor implements org.jboss.invocation.Intercept
         private final InjectedValue<WeldBootstrapService> weldContainer = new InjectedValue<WeldBootstrapService>();
         private final String beanArchiveId;
         private final String ejbName;
+        private final Class<?> componentClass;
         private final InterceptionType interceptionType;
         private final ClassLoader classLoader;
 
-        public Factory(final String beanArchiveId, final String ejbName, final InterceptionType interceptionType, final ClassLoader classLoader) {
+        public Factory(final String beanArchiveId, final String ejbName, final Class<?> componentClass, final InterceptionType interceptionType, final ClassLoader classLoader) {
             this.beanArchiveId = beanArchiveId;
             this.ejbName = ejbName;
+            this.componentClass = componentClass;
             this.interceptionType = interceptionType;
             this.classLoader = classLoader;
         }
 
         @Override
         public org.jboss.invocation.Interceptor create(final Component component, final InterceptorFactoryContext context) {
+            BeanManagerImpl manager = weldContainer.getValue().getBeanManager(beanArchiveId);
 
             //we use the interception type as the context key
             //as there are potentially up to six instances of this interceptor for every component
-            final Jsr299BindingsInterceptor interceptor = new Jsr299BindingsInterceptor(weldContainer.getValue().getBeanManager(beanArchiveId), ejbName, context, interceptionType, classLoader);
-            return interceptor;
+            if (ejbName != null) {
+                EjbDescriptor<?> ejbDescriptor = manager.getEjbDescriptor(ejbName);
+                EjbServices ejbServices = manager.getServices().get(EjbServices.class);
+                if (ejbServices instanceof ForwardingEjbServices) {
+                    ejbServices = ((ForwardingEjbServices) ejbServices).delegate();
+                }
+                InterceptorBindings interceptorBindings = null;
+                if (ejbServices instanceof WeldEjbServices) {
+                    interceptorBindings = ((WeldEjbServices) ejbServices).getBindings(ejbName);
+                }
+                return new Jsr299BindingsInterceptor(manager, interceptorBindings, manager.getBean(ejbDescriptor), context, interceptionType, classLoader);
+            } else {
+                // This is a managed bean
+                SlimAnnotatedType<?> type = (SlimAnnotatedType<?>) manager.createAnnotatedType(componentClass);
+                if (!manager.getInterceptorModelRegistry().containsKey(type)) {
+                    EnhancedAnnotatedType<?> enhancedType = manager.getServices().get(ClassTransformer.class).getEnhancedAnnotatedType(type);
+                    InterceptionModelInitializer.of(manager, enhancedType, null).init();
+                }
+                InterceptionModel<ClassMetadata<?>> model = manager.getInterceptorModelRegistry().get(type);
+                final InterceptorBindings bindings = (model != null) ? new InterceptorBindingsAdapter(manager.getInterceptorModelRegistry().get(type)) : null;
+                return new Jsr299BindingsInterceptor(manager, bindings, null, context, interceptionType, classLoader);
+            }
         }
 
         public InjectedValue<WeldBootstrapService> getWeldContainer() {
             return weldContainer;
         }
     }
-
 }
