@@ -300,4 +300,8 @@ public class WeldClassFileInfo implements ClassFileInfo {
         return clazz;
     }
 
+    @Override
+    public String toString() {
+        return classInfo.toString();
+    }
 }
